@@ -1,0 +1,72 @@
+{
+  "spec_version": "2026-09-17",
+  "unofficial": true,
+  "disclaimer": "Classification drives your conformity assessment route, not your Article 14 reporting duty. Article 14 applies to every product with digital elements regardless of class. Confirm your own class against Annex III and Annex IV of Regulation (EU) 2024/2847 and the Commission's technical description of the categories.",
+  "sources": [
+    {"title": "CRA Product Classes: Default, Important or Critical (Annex III)",
+     "url": "https://www.cyberresilienceact.eu/classification.html", "consulted": "2026-09-17"},
+    {"title": "Cyber Resilience Act: Commission clarifies important and critical product categories",
+     "url": "https://www.hsfkramer.com/notes/cybersecurity/2026-posts/cyber-resilience-act-commission-clarifies-important-and-critical-product-categories",
+     "consulted": "2026-09-17"}
+  ],
+  "classes": {
+    "default": {
+      "label": "Default",
+      "legal_basis": "Not named in Annex III or Annex IV",
+      "conformity_route": "Module A, self-assessment under internal control",
+      "note": "Technical documentation and an EU declaration of conformity are still mandatory.",
+      "categories": []
+    },
+    "important-i": {
+      "label": "Important, Annex III Class I",
+      "legal_basis": "Regulation (EU) 2024/2847 Annex III, Class I",
+      "conformity_route": "Harmonised standards route, or third-party assessment where standards are not applied in full",
+      "categories": [
+        "Identity management systems and privileged access management software and hardware, including authentication and access control readers, including biometric readers",
+        "Standalone and embedded browsers",
+        "Password managers",
+        "Software that searches for, removes, or quarantines malicious software",
+        "Products with digital elements with the function of virtual private network (VPN)",
+        "Network management systems",
+        "Security information and event management (SIEM) systems",
+        "Boot managers",
+        "Public key infrastructure and digital certificate issuance software",
+        "Physical and virtual network interfaces",
+        "Operating systems",
+        "Routers, modems intended for the connection to the internet, and switches",
+        "Microprocessors with security-related functionalities",
+        "Microcontrollers with security-related functionalities",
+        "Application specific integrated circuits (ASIC) and field-programmable gate arrays (FPGA) with security-related functionalities",
+        "Smart home general purpose virtual assistants",
+        "Smart home products with security functionalities, including smart door locks, security cameras, baby monitoring systems and alarm systems",
+        "Internet connected toys covered by Directive 2009/48/EC that have social interactive features or that have location tracking features",
+        "Personal wearable products to be worn or placed on a human body that have a health monitoring purpose, and products with digital elements intended for the use by and for children"
+      ]
+    },
+    "important-ii": {
+      "label": "Important, Annex III Class II",
+      "legal_basis": "Regulation (EU) 2024/2847 Annex III, Class II",
+      "conformity_route": "Third-party conformity assessment",
+      "categories": [
+        "Hypervisors and container runtime systems that support virtualised execution of operating systems and similar environments",
+        "Firewalls, intrusion detection and prevention systems",
+        "Tamper-resistant microprocessors",
+        "Tamper-resistant microcontrollers"
+      ]
+    },
+    "critical": {
+      "label": "Critical",
+      "legal_basis": "Regulation (EU) 2024/2847 Annex IV",
+      "conformity_route": "May be required by delegated act to hold a European cybersecurity certificate at assurance level at least substantial",
+      "categories": [
+        "Hardware devices with security boxes",
+        "Smart meter gateways within smart metering systems and other devices for advanced security purposes, including for secure cryptoprocessing",
+        "Smartcards or similar devices, including secure elements"
+      ]
+    }
+  },
+  "embedded_linux_hint": {
+    "note": "Most embedded Linux products land in important-i through a single line of Annex III, usually 'Operating systems' or 'Routers, modems intended for the connection to the internet, and switches'. A gateway that terminates a WAN link is a router for this purpose even if you call it something else.",
+    "common": ["important-i"]
+  }
+}

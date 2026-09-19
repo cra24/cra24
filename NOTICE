@@ -1,0 +1,61 @@
+cra24
+Copyright (C) 2026 Amr Ben Abdessalem, France
+
+This program is free software: you can redistribute it and/or modify it under the
+terms of the GNU Affero General Public License version 3, as published by the Free
+Software Foundation. See LICENSE.
+
+A commercial licence is available as an alternative. See LICENSING.md.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+--------------------------------------------------------------------------------
+UNAFFILIATED
+--------------------------------------------------------------------------------
+
+cra24 is not affiliated with, endorsed by, or validated by ENISA, the European
+Commission, any national CSIRT, any market surveillance authority, or any notified
+body. It certifies nothing and submits nothing. The names of those institutions
+appear in this software only to describe what the software helps you prepare for.
+
+--------------------------------------------------------------------------------
+VENDORED THIRD-PARTY FILES
+--------------------------------------------------------------------------------
+
+src/cra24/data/schemas/csaf_json_schema.json
+    Common Security Advisory Framework (CSAF) Version 2.0 JSON schema.
+    Copyright (c) OASIS Open 2022. Source: https://github.com/oasis-tcs/csaf
+    Distributed under the OASIS IPR Policy. Retrieved 2026-09-17.
+
+src/cra24/data/schemas/openvex_json_schema.json
+    OpenVEX JSON schema, version 0.2.0.
+    Copyright The OpenVEX Authors. Source: https://github.com/openvex/spec
+    Licensed under the Apache License, Version 2.0. Retrieved 2026-09-17.
+
+src/cra24/data/schemas/cvss-v3.1.json
+src/cra24/data/schemas/cvss-v3.0.json
+src/cra24/data/schemas/cvss-v2.0.json
+    Local stand-ins so that the CSAF 2.0 schema resolves without network access.
+    The canonical CVSS schemas are published by FIRST.org at
+    https://www.first.org/cvss/. Only the v3.1 file is a working schema; the v2.0
+    and v3.0 files are permissive placeholders, because cra24 does not emit those
+    versions. Replace any of them with the upstream copy if you need exact
+    fidelity. CVSS is a registered trademark of FIRST.org, Inc.
+
+--------------------------------------------------------------------------------
+DOCUMENTATION AND DATA
+--------------------------------------------------------------------------------
+
+The contents of docs/ and the regulation-derived data files
+src/cra24/data/srp-fields.json and src/cra24/data/annex.json are additionally
+made available under the Creative Commons Attribution 4.0 International licence
+(CC-BY-4.0), at your option. A mapping of a public regulation should not be
+enclosed by anyone, including this project.
+
+Quoted fragments of Regulation (EU) 2024/2847 and of Annex III and IV category
+names are reproduced for identification and reference. EU legislative texts are
+published by the Publications Office of the European Union; reuse is permitted
+under Commission Decision 2011/833/EU, with the caveat that only the text on
+EUR-Lex is authentic.

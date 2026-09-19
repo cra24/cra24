@@ -1,0 +1,16 @@
+{
+  "name": "AcmeGateway",
+  "version": "2.4.0",
+  "member_states": ["FR", "DE", "BE"],
+  "annex_class": "important-i",
+  "support_period_end": "2031-09-01",
+  "manufacturer": {
+    "name": "Acme Embedded SAS",
+    "country": "FR",
+    "coordinator_csirt": "CERT-FR",
+    "assigned_representative": "A. Nom",
+    "contact_email": "psirt@acme.example",
+    "security_contact_url": "https://acme.example/security",
+    "csaf_namespace": "https://acme.example"
+  }
+}

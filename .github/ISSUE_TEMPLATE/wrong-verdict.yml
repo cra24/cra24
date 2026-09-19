@@ -1,0 +1,53 @@
+name: Wrong triage verdict
+description: cra24 reached a conclusion the evidence does not support
+title: "[triage] "
+labels: ["triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A wrong `not_affected` or `fixed` is treated as a **security issue**, not
+        an accuracy issue — see SECURITY.md. If the wrong verdict could cause a
+        real vulnerability to be published as harmless, please email rather than
+        opening a public issue.
+
+        A wrong `affected` is a normal bug. Both are worth reporting.
+  - type: dropdown
+    id: direction
+    attributes:
+      label: Which direction
+      options:
+        - "Too favourable — said not_affected or fixed when it should not have"
+        - "Too unfavourable — said affected when the code cannot be reached"
+        - "Unhelpful — under_investigation when the evidence was conclusive"
+    validations: {required: true}
+  - type: input
+    id: cve
+    attributes:
+      label: CVE
+      placeholder: "CVE-2024-1086"
+    validations: {required: true}
+  - type: textarea
+    id: output
+    attributes:
+      label: The full output of `cra24 check ... -v`
+      description: The findings are the important part — they say which rule fired and what it read.
+      render: shell
+    validations: {required: true}
+  - type: textarea
+    id: expected
+    attributes:
+      label: What the verdict should have been, and why
+    validations: {required: true}
+  - type: dropdown
+    id: source
+    attributes:
+      label: Inventory source
+      options: ["Yocto build dir", "Buildroot output", "CycloneDX SBOM", "SPDX SBOM", "product.json"]
+    validations: {required: true}
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `cra24 doctor`
+      render: shell
+    validations: {required: true}

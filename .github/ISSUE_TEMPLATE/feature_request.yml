@@ -1,0 +1,34 @@
+name: Feature request
+description: Suggest something
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do that cra24 makes hard? Describe the situation, not the solution.
+    validations: {required: true}
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you have in mind
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which area
+      options:
+        - "Ingest — a build system or SBOM format"
+        - "Triage — a rule or a reason-string mapping"
+        - "Emit — an output format"
+        - "Field spec / regulation data"
+        - "CLI"
+        - "Evidence"
+        - "Something else"
+    validations: {required: true}
+  - type: markdown
+    attributes:
+      value: |
+        Worth knowing what is deliberately out of scope: SBOM generation,
+        vulnerability scanning, automated submission to the SRP, and anything
+        claiming to make a manufacturer compliant. See docs/roadmap.md.

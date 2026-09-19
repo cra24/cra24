@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability in cra24
+    url: https://github.com/cra24/cra24/blob/main/SECURITY.md
+    about: Do not open a public issue. See the security policy.
+  - name: Commercial licence
+    url: https://github.com/cra24/cra24/blob/main/LICENSING.md#buying-a-commercial-licence
+    about: Shipping cra24 in a product, or offering it as a service.
+  - name: Licensing questions
+    url: https://github.com/cra24/cra24/blob/main/docs/licensing-faq.md
+    about: Do we need to pay? Do we own the output? Why a CLA?

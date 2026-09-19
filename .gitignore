@@ -1,0 +1,40 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+.env
+
+# Local working notes, scratch files and delivered artefacts. Anything in here
+# is for this checkout only and must never reach a clone: keep working notes
+# there rather than loose in the root, where they end up in a release tarball.
+/__internal__/
+
+# Anchored to the repository root on purpose. An unanchored `build/` also
+# matches tests/fixtures/buildroot-output/build/, which silently excluded a
+# kernel .config fixture and broke the suite only in a fresh clone.
+/dist/
+/build/
+
+# pytest / tooling
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# cra24 working output — never commit a customer's dossier. These contain an
+# unpatched-vulnerability inventory of a shipping product.
+/product.json
+/dossier/
+/evidence/
+*.dossier/
+.cra24-cache/
+/watch-dossiers/
+/products/
+watch-state.json
+
+# ...but the test fixtures are not working output.
+!tests/fixtures/**

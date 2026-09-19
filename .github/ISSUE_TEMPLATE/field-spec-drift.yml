@@ -1,0 +1,62 @@
+name: Field spec drift
+description: The ENISA SRP form does not match what `cra24 spec` prints
+title: "[spec drift] "
+labels: ["field-spec", "high-value"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This is the most valuable report this project receives.**
+
+        ENISA publishes no machine-readable field spec and no API, so
+        `src/cra24/data/srp-fields.json` is reconstructed from documentation.
+        It is exactly as accurate as the reports it gets from people who have
+        actually seen the form.
+
+        You do not need to write any code. Please remove anything sensitive
+        from screenshots before attaching them.
+  - type: input
+    id: spec_version
+    attributes:
+      label: Spec version cra24 is carrying
+      description: From `cra24 spec | head -1` or `cra24 doctor`
+      placeholder: "2026-09-17"
+    validations: {required: true}
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Which stage
+      options: ["Early warning (24h)", "Notification (72h)", "Final report", "Registration / account setup"]
+    validations: {required: true}
+  - type: dropdown
+    id: track
+    attributes:
+      label: Which track
+      options: ["Actively exploited vulnerability", "Severe incident", "Both / not applicable"]
+    validations: {required: true}
+  - type: textarea
+    id: drift
+    attributes:
+      label: What differs
+      description: The field label as shown on screen, and how it differs
+      placeholder: |
+        The form shows "Estimated number of affected units" as a mandatory field
+        at the 24-hour stage. cra24's spec has no such field.
+    validations: {required: true}
+  - type: dropdown
+    id: mandatory
+    attributes:
+      label: Was the field mandatory?
+      options: ["Mandatory", "Optional", "Conditional — depended on another answer", "Could not tell"]
+    validations: {required: true}
+  - type: input
+    id: seen_on
+    attributes:
+      label: Date you saw this
+      placeholder: "2026-10-02"
+    validations: {required: true}
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Screenshots with sensitive parts removed, quotes from the AR User Manual, etc.

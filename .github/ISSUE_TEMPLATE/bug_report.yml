@@ -1,0 +1,33 @@
+name: Bug report
+description: Something does not work
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+    validations: {required: true}
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations: {required: true}
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: The exact command, please. A fixture under tests/fixtures/ that shows it is even better.
+      render: shell
+    validations: {required: true}
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `cra24 doctor`
+      render: shell
+    validations: {required: true}
+  - type: markdown
+    attributes:
+      value: |
+        Please do not attach a real `product.json`, dossier or evidence ledger.
+        Those contain an unpatched-vulnerability inventory of a shipping product.

@@ -1,0 +1,5 @@
+PACKAGE NAME: kernel-image-image
+PACKAGE VERSION: 6.6.22
+RECIPE NAME: linux-raspberrypi
+LICENSE: GPL-2.0-only
+

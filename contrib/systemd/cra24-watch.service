@@ -1,0 +1,67 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (C) 2026 cra24 contributors
+#
+# Install:
+#   sudo cp contrib/systemd/cra24-watch.* /etc/systemd/system/
+#   sudo useradd --system --home /var/lib/cra24 --shell /usr/sbin/nologin cra24
+#   sudo install -d -o cra24 -g cra24 /var/lib/cra24/{products,dossiers,cache}
+#   sudo cp your-product.json /var/lib/cra24/products/
+#   sudo systemctl enable --now cra24-watch.timer
+#
+# The timer runs a single pass and exits, rather than a long-lived daemon. One
+# less thing holding memory for an hour between polls, and a crash is a failed
+# unit you can see rather than a process that quietly stopped watching.
+
+[Unit]
+Description=cra24 — watch vulnerability feeds against registered products
+Documentation=https://github.com/cra24/cra24/blob/main/docs/watch.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=cra24
+Group=cra24
+WorkingDirectory=/var/lib/cra24
+
+Environment=CRA24_CACHE_DIR=/var/lib/cra24/cache
+Environment=CRA24_LOG_JSON=1
+# Signing key for the evidence ledger. Keep it out of this file and out of the
+# working directory — a key stored next to what it signs protects nothing.
+# EnvironmentFile=-/etc/cra24/secrets.env
+
+ExecStart=/usr/local/bin/cra24 watch \
+    --products /var/lib/cra24/products \
+    --out /var/lib/cra24/dossiers \
+    --once \
+    --notify file:/var/lib/cra24/alerts.jsonl \
+    --notify email:psirt@example.invalid
+
+# A reportable finding exits 1. That is news, not a malfunction.
+SuccessExitStatus=0 1
+
+# Hardening. cra24 reads its products, writes dossiers, and talks HTTPS to the
+# feed hosts. It needs nothing else.
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+CapabilityBoundingSet=
+ReadWritePaths=/var/lib/cra24
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

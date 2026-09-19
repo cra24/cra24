@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (C) 2026 cra24 contributors
+"""Allow ``python -m cra24``."""
+
+import sys
+
+from .cli import main
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,107 @@
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cra24"
+version = "1.0.0"
+description = "CRA Article 14 dossiers from an embedded Linux build tree"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "AGPL-3.0-only"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "cra24 contributors" }]
+keywords = ["cra", "cyber-resilience-act", "vex", "csaf", "sbom", "yocto",
+            "buildroot", "embedded", "vulnerability-management", "compliance"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Legal Industry",
+  "License :: OSI Approved :: GNU Affero General Public License v3",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Security",
+  "Topic :: Software Development :: Embedded Systems",
+  "Typing :: Typed",
+]
+dependencies = []
+
+[project.optional-dependencies]
+validate = ["jsonschema>=4.18", "referencing>=0.30"]
+dev = [
+  "cra24[validate]",
+  "pytest>=7.4",
+  "pytest-cov>=4.1",
+  "ruff>=0.5",
+  "mypy>=1.8",
+]
+
+[project.urls]
+Homepage = "https://github.com/cra24/cra24"
+Documentation = "https://github.com/cra24/cra24/tree/main/docs"
+Source = "https://github.com/cra24/cra24"
+Issues = "https://github.com/cra24/cra24/issues"
+Changelog = "https://github.com/cra24/cra24/blob/main/CHANGELOG.md"
+
+[project.scripts]
+cra24 = "cra24.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cra24"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/", "tests/", "docs/", "README.md", "LICENSE", "LICENSING.md",
+           "CLA.md", "NOTICE", "CHANGELOG.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = ["schema: requires jsonschema to be installed"]
+
+[tool.ruff]
+line-length = 96
+target-version = "py310"
+src = ["src", "tests"]
+# ruff 0.16 began formatting Python blocks inside Markdown. The snippets in
+# docs/ are illustrative — several are deliberately elided or pseudo-code — and
+# reformatting them changes what they teach. Excluding Markdown also keeps the
+# format check stable across ruff versions, which matters when CI installs the
+# latest and a contributor has whatever their distribution ships.
+extend-exclude = ["*.md"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "SIM", "RUF", "ARG", "PTH"]
+ignore = [
+  "E501",    # line length is handled by the formatter
+  "RUF012",  # mutable class defaults are intentional on dataclasses
+  "N818",    # exception names here read better without the Error suffix rule
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ARG", "S101"]
+"src/cra24/logging.py" = ["A005"]  # shadows stdlib logging on purpose, scoped to the package
+
+[tool.mypy]
+python_version = "3.10"
+packages = ["cra24"]
+mypy_path = "src"
+warn_unused_configs = true
+warn_redundant_casts = true
+no_implicit_optional = true
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["jsonschema.*", "referencing.*"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["cra24"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError"]

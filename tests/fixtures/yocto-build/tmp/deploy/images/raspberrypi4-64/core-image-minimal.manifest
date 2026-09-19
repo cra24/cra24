@@ -1,0 +1,10 @@
+base-files aarch64 3.0.14
+base-passwd aarch64 3.6.1
+busybox aarch64 1.36.1
+busybox-hwclock aarch64 1.36.1
+dropbear aarch64 2022.83
+libcrypto3 aarch64 3.0.12
+libssl3 aarch64 3.0.12
+openssl aarch64 3.0.12
+kernel-image-image aarch64 6.6.22
+zlib1g aarch64 1.2.13

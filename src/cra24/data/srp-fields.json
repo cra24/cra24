@@ -1,0 +1,157 @@
+{
+  "spec_version": "2026-09-17",
+  "spec_name": "ENISA CRA Single Reporting Platform field spec",
+  "unofficial": true,
+  "disclaimer": "Reconstructed from public documentation. ENISA publishes no machine-readable field spec and no API. Verify against the CRA SRP AR User Manual and the SRP Glossary for your own account before relying on this. The form is young and the field set will move.",
+  "sources": [
+    {
+      "title": "Single Reporting Platform (SRP) - ENISA",
+      "url": "https://www.enisa.europa.eu/topics/product-security/single-reporting-platform-srp",
+      "consulted": "2026-09-17"
+    },
+    {
+      "title": "Cyber Resilience Act - Reporting obligations, European Commission",
+      "url": "https://digital-strategy.ec.europa.eu/en/policies/cra-reporting",
+      "consulted": "2026-09-17"
+    },
+    {
+      "title": "The CRA Single Reporting Platform Opens Tomorrow: What ENISA Actually Requires",
+      "url": "https://sbomify.com/2026/09/10/cra-single-reporting-platform-enisa-srp/",
+      "consulted": "2026-09-17"
+    },
+    {
+      "title": "ENISA Single Reporting Platform (SRP) Guide",
+      "url": "https://cvdportal.com/enisa-srp",
+      "consulted": "2026-09-17"
+    }
+  ],
+  "known_disagreements": [
+    {
+      "field": "severity",
+      "note": "One public guide lists a severity level as mandatory at the 24-hour stage; another lists only a notification level indicator at 24h with severity detail deferred to the final report. cra24 asks for both and marks severity as conditionally required so the operator is never caught short. Resolve against the AR User Manual."
+    },
+    {
+      "field": "affected_member_states",
+      "note": "Article 14 says the early warning shall indicate the Member States where the product was made available. Public guides describe the platform field as 'required if the information is available'. cra24 treats it as required and emits a blocking gap when empty."
+    }
+  ],
+  "stages": [
+    {
+      "id": "early_warning",
+      "label": "Early warning",
+      "deadline_hours": 24,
+      "deadline_basis": "from becoming aware",
+      "legal_basis": "CRA Article 14(1)(a) for actively exploited vulnerabilities; Article 14(3)(a) for severe incidents",
+      "fields": [
+        {"key": "notification_type", "label": "Notification type", "requirement": "required", "type": "enum",
+         "values": ["Actively exploited vulnerability", "Severe incident"],
+         "help": "Article 14(1) vulnerability track or Article 14(3) incident track. Chooses the whole downstream form."},
+        {"key": "notification_level", "label": "Notification level", "requirement": "required", "type": "enum",
+         "values": ["Early warning", "Notification", "Final report"],
+         "help": "Which of the three stages this submission is."},
+        {"key": "incident_title", "label": "Title", "requirement": "required", "type": "string", "max_length": 200,
+         "help": "Short identifying headline. Shown to the coordinator CSIRT in its queue."},
+        {"key": "summary", "label": "Summary", "requirement": "required", "type": "text",
+         "help": "A few sentences a duty officer can act on without opening anything else."},
+        {"key": "manufacturer_name", "label": "Manufacturer name", "requirement": "required", "type": "string",
+         "help": "The legal entity placing the product on the EU market."},
+        {"key": "product_name", "label": "Product name", "requirement": "required", "type": "string"},
+        {"key": "product_version", "label": "Product version", "requirement": "required", "type": "string",
+         "help": "A distinct field on the platform. Do not fold it into the product name."},
+        {"key": "became_aware_at", "label": "Date and time became aware", "requirement": "required", "type": "datetime",
+         "help": "Starts all three clocks. Record it the moment it happens; you cannot reconstruct it later."},
+        {"key": "affected_member_states", "label": "Member States where the product is made available",
+         "requirement": "required", "type": "enum_list", "value_set": "eu_member_states",
+         "help": "Article 14(1)(a) requires the early warning to indicate these."},
+        {"key": "malicious_intent", "label": "Suspected to result from unlawful or malicious acts",
+         "requirement": "conditional", "required_when": "notification_type == 'Severe incident'", "type": "enum",
+         "values": ["yes", "no", "unknown"],
+         "help": "Mandatory on the incident track. Optional but useful on the vulnerability track."},
+        {"key": "severity", "label": "Severity level", "requirement": "conditional", "type": "enum",
+         "values": ["low", "medium", "high", "critical", "unknown"],
+         "help": "Public guidance disagrees on whether this is mandatory at 24h. Fill it anyway."},
+        {"key": "cross_border", "label": "Cross-border threat within the EU market", "requirement": "optional",
+         "type": "enum", "values": ["yes", "no", "unknown"]},
+        {"key": "coordinator_csirt", "label": "Coordinator CSIRT", "requirement": "derived",
+         "type": "string",
+         "help": "Determined by your Member State of main establishment and fixed at AR registration. Selecting the wrong one invalidates the notification and forces a resubmission."},
+        {"key": "product_category", "label": "Product category", "requirement": "optional", "type": "string"},
+        {"key": "annex_classification", "label": "Annex classification", "requirement": "optional", "type": "enum",
+         "values": ["default", "important-i", "important-ii", "critical"]},
+        {"key": "component_name", "label": "Component name", "requirement": "optional", "type": "string",
+         "help": "Optional on the platform at every stage. cra24 fills it from the build because it is what the CSIRT actually needs."},
+        {"key": "cve_id", "label": "CVE ID", "requirement": "optional", "type": "string"},
+        {"key": "euvd_id", "label": "EUVD ID", "requirement": "optional", "type": "string",
+         "help": "ENISA's own vulnerability database identifier, where one has been assigned."},
+        {"key": "attack_vector", "label": "Attack vector", "requirement": "optional", "type": "string"}
+      ]
+    },
+    {
+      "id": "notification",
+      "label": "Notification with initial assessment",
+      "deadline_hours": 72,
+      "deadline_basis": "from becoming aware",
+      "legal_basis": "CRA Article 14(1)(b) / Article 14(3)(b)",
+      "inherits": "early_warning",
+      "fields": [
+        {"key": "vulnerability_nature", "label": "General information on the nature of the vulnerability",
+         "requirement": "required", "type": "text",
+         "conditional_track": "Actively exploited vulnerability"},
+        {"key": "incident_nature", "label": "Nature of the incident", "requirement": "required", "type": "text",
+         "conditional_track": "Severe incident"},
+        {"key": "initial_assessment", "label": "Initial assessment of the incident or vulnerability",
+         "requirement": "required", "type": "text",
+         "help": "Include the exploitation evidence. 'Actively exploited' is the trigger word in Article 14(1)."},
+        {"key": "corrective_measures", "label": "Corrective or mitigating measures taken",
+         "requirement": "required", "type": "text"},
+        {"key": "user_measures", "label": "Measures users can take", "requirement": "required", "type": "text",
+         "help": "Mirrors the Article 14(8) duty to inform impacted users, in machine-readable form where possible."},
+        {"key": "detected_at", "label": "Detection time", "requirement": "optional", "type": "datetime",
+         "conditional_track": "Severe incident"},
+        {"key": "sensitivity", "label": "Sensitivity considerations", "requirement": "optional", "type": "text",
+         "help": "Grounds for the coordinator CSIRT to withhold onward dissemination under Article 16(2) particularly exceptional circumstances."}
+      ]
+    },
+    {
+      "id": "final_report",
+      "label": "Final report",
+      "deadline_hours": null,
+      "deadline_basis": "vulnerability: 14 days after a corrective or mitigating measure is available; incident: 1 month after the 72-hour notification",
+      "legal_basis": "CRA Article 14(2) / Article 14(4)",
+      "inherits": "notification",
+      "fields": [
+        {"key": "vulnerability_description", "label": "Description of the vulnerability including severity and impact",
+         "requirement": "required", "type": "text", "conditional_track": "Actively exploited vulnerability"},
+        {"key": "incident_description", "label": "Detailed description of the incident",
+         "requirement": "required", "type": "text", "conditional_track": "Severe incident"},
+        {"key": "threat_root_cause", "label": "Type of threat or root cause", "requirement": "required", "type": "text",
+         "conditional_track": "Severe incident"},
+        {"key": "malicious_actor", "label": "Information concerning the malicious actor",
+         "requirement": "optional", "type": "text", "help": "Where available."},
+        {"key": "security_update", "label": "Security update or other corrective measure",
+         "requirement": "required", "type": "text",
+         "conditional_track": "Actively exploited vulnerability"},
+        {"key": "measure_available_at", "label": "Date the corrective measure became available",
+         "requirement": "required", "type": "datetime",
+         "conditional_track": "Actively exploited vulnerability",
+         "help": "Starts the 14-day final report clock. The platform shows no counter for this, so cra24 keeps it."},
+        {"key": "applied_mitigations", "label": "Applied and ongoing mitigations", "requirement": "required",
+         "type": "text", "conditional_track": "Severe incident"},
+        {"key": "supply_chain_impact", "label": "Supply chain impact", "requirement": "optional", "type": "text"}
+      ]
+    }
+  ],
+  "value_sets": {
+    "eu_member_states": ["AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE",
+                         "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE"]
+  },
+  "platform_notes": [
+    "No API at launch. Submission is a human filling in a web form. Automating your own workflow up to the point of submission is permitted; automating the submission itself is not possible.",
+    "English only at launch.",
+    "Registration is per natural person via EU Login with MFA, not per company. One primary assigned representative per manufacturer, up to 20 secondary representatives.",
+    "Registration cannot be done retroactively. Named representatives need working EU Login accounts before an incident.",
+    "A reported platform defect shows the 72-hour due date as 48 hours after early warning submission rather than 72 hours from awareness. Trust your own clock, not the platform counter.",
+    "There is no final-report counter for actively exploited vulnerabilities, because the deadline depends on when your corrective measure ships.",
+    "If the platform is unavailable, the obligation is discharged when you submit after it is restored. Contacting the CSIRT directly does not discharge it."
+  ]
+}

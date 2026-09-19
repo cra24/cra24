@@ -1,0 +1,5 @@
+PACKAGE NAME: busybox
+PACKAGE VERSION: 1.36.1
+RECIPE NAME: busybox
+LICENSE: GPL-2.0-only & bzip2-1.0.4
+

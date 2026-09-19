@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (C) 2026 cra24 contributors
+
+[Unit]
+Description=Run cra24 watch hourly
+Documentation=https://github.com/cra24/cra24/blob/main/docs/watch.md
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=1h
+# Spread the load: every installation polling CISA on the hour is rude, and the
+# feeds do not change often enough for the precision to buy anything.
+RandomizedDelaySec=20min
+Persistent=yes
+
+[Install]
+WantedBy=timers.target

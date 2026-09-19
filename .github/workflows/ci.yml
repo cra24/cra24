@@ -1,0 +1,124 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (py${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - run: pip install -e '.[dev]'
+      - run: pytest --cov=cra24 --cov-report=term-missing
+      - name: the tool must work without the optional validator
+        # A manufacturer on a locked-down build machine will install the base
+        # package. It has to run, and it has to say clearly why it cannot
+        # validate rather than pretending the documents passed.
+        run: |
+          pip uninstall -y jsonschema referencing
+          cra24 doctor || true
+          cra24 check --build-dir tests/fixtures/yocto-build CVE-2024-1086
+          cra24 report --build-dir tests/fixtures/yocto-build CVE-2024-1086 \
+            --aware-at 2026-09-17T08:30:00Z --no-validate --out /tmp/d || [ $? -eq 6 ]
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e '.[dev]'
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: mypy
+
+  licence-headers:
+    name: licence headers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e '.[dev]'
+      # A dual-licensed project lives on provenance. A source file without an
+      # SPDX header is one whose licence a court would have to infer, and an
+      # inferred licence is what the commercial offer cannot rest on.
+      - run: pytest tests/test_repo_hygiene.py -v
+
+  dco:
+    name: sign-off (DCO/CLA)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: every commit must carry Signed-off-by
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          missing=0
+          while read -r sha; do
+            if ! git log -1 --format=%B "$sha" | grep -qi '^Signed-off-by: .\+ <.\+@.\+>'; then
+              echo "::error::commit $sha has no Signed-off-by trailer"
+              missing=1
+            fi
+          done < <(git rev-list "$base".."$head")
+          if [ "$missing" -ne 0 ]; then
+            echo "Run: git rebase --signoff $base   (see CLA.md)"
+            exit 1
+          fi
+
+  smoke:
+    name: end-to-end smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e '.[validate]'
+      - name: scan, check, report, verify
+        run: |
+          set -euo pipefail
+          cra24 doctor
+          cra24 scan --build-dir tests/fixtures/yocto-build \
+                     --config tests/fixtures/demo-config.json --out product.json
+          cra24 check --product product.json CVE-2024-1086 --json | tee /tmp/check.json
+          test "$(jq -r .status /tmp/check.json)" = affected
+          cra24 check --product product.json CVE-2024-1086 --gate KSMBD --json \
+            | jq -e '.status == "not_affected"'
+          cra24 report --product product.json --config tests/fixtures/demo-config.json \
+            CVE-2024-1086 --aware-at 2026-09-17T08:30:00Z --actively-exploited yes \
+            --severity high --summary "smoke test" --out dossier
+          cra24 verify dossier/evidence --summary
+      - name: tampering must be detected
+        run: |
+          sed -i 's/Acme/Nope/' dossier/cve-2024-1086.csaf.json
+          if cra24 verify dossier/evidence; then
+            echo "::error::a tampered artefact passed verification"
+            exit 1
+          fi

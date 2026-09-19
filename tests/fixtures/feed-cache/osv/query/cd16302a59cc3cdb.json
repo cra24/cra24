@@ -1,0 +1,42 @@
+{
+  "vulns": [
+    {
+      "id": "CVE-2024-1086",
+      "schema_version": "1.6.0",
+      "modified": "2026-01-04T10:15:00Z",
+      "published": "2024-01-31T13:15:08Z",
+      "aliases": [
+        "GHSA-xxxx-yyyy-zzzz",
+        "EUVD-2024-1086"
+      ],
+      "summary": "Linux kernel netfilter nf_tables use-after-free",
+      "severity": [
+        {
+          "type": "CVSS_V3",
+          "score": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H"
+        }
+      ],
+      "affected": [
+        {
+          "package": {
+            "ecosystem": "Linux",
+            "name": "linux"
+          },
+          "ranges": [
+            {
+              "type": "ECOSYSTEM",
+              "events": [
+                {
+                  "introduced": "3.15"
+                },
+                {
+                  "fixed": "6.6.25"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
