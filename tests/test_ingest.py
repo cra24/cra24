@@ -134,3 +134,105 @@ class TestKernelConfig:
         cfg = read_kernel_config(path)
         assert cfg == {"CONFIG_A": "y", "CONFIG_B": "n", "CONFIG_C": "m", "CONFIG_D": "quoted"}
         assert "CONFIG_NEVER_MENTIONED" not in cfg
+
+
+class TestKernelConfigSymbolNames:
+    """Kconfig symbols are conventionally upper case, but not exclusively.
+
+    Every name below is real, taken from a stock Ubuntu 6.8 config. An
+    upper-case-only pattern dropped 36 enabled symbols from that one file, and a
+    dropped ``=m`` is worse than a parse error: the symbol becomes *absent*,
+    absence in a complete config reads as "not enabled", and the gate then
+    reports a driver that is compiled in and shipping as not affected — with an
+    evidence string saying it is "not set in the shipped kernel config".
+    """
+
+    REAL_SYMBOLS = [
+        ("CONFIG_SCSI_DC395x=m", "CONFIG_SCSI_DC395x", "m"),
+        ("CONFIG_MT76x02_LIB=m", "CONFIG_MT76x02_LIB", "m"),
+        ("CONFIG_MT792x_USB=m", "CONFIG_MT792x_USB", "m"),
+        ("CONFIG_ARCNET_COM90xxIO=m", "CONFIG_ARCNET_COM90xxIO", "m"),
+        ("CONFIG_MTD_NETtel=m", "CONFIG_MTD_NETtel", "m"),
+        ("CONFIG_FONT_8x16=y", "CONFIG_FONT_8x16", "y"),
+    ]
+
+    @pytest.mark.parametrize(("line", "symbol", "value"), REAL_SYMBOLS)
+    def test_a_symbol_with_lower_case_is_parsed(
+        self, tmp_path: Path, line: str, symbol: str, value: str
+    ) -> None:
+        cfg = tmp_path / ".config"
+        cfg.write_text(f"#\n# Automatically generated file; DO NOT EDIT.\n#\n{line}\n")
+        assert read_kernel_config(cfg)[symbol] == value
+
+    def test_an_unset_symbol_with_lower_case_is_recorded_as_n(self, tmp_path: Path) -> None:
+        cfg = tmp_path / ".config"
+        cfg.write_text(
+            "#\n# Automatically generated file; DO NOT EDIT.\n#\n"
+            "# CONFIG_FONT_6x11 is not set\n"
+        )
+        assert read_kernel_config(cfg)["CONFIG_FONT_6x11"] == "n"
+
+    def test_a_compiled_in_driver_is_never_reported_as_gated_out(self, tmp_path: Path) -> None:
+        """The failure this guards, end to end.
+
+        CONFIG_MT76x02_LIB=m means the driver ships. The gate must say the
+        product *is* affected, not invent an absence.
+        """
+        from cra24.model import Component, Product
+        from cra24.triage import _config_gate
+
+        cfg = tmp_path / ".config"
+        cfg.write_text(
+            "#\n# Automatically generated file; DO NOT EDIT.\n#\nCONFIG_MT76x02_LIB=m\n"
+        )
+        product = Product(name="Gateway", version="1.0")
+        product.kernel_config = read_kernel_config(cfg)
+        product.kernel_config_complete = True
+
+        gated = _config_gate(
+            product, Component(name="linux", version="6.8"), ["CONFIG_MT76x02_LIB"]
+        )
+        assert gated is not None
+        assert gated[0] is False, "a driver compiled in as a module was gated out"
+        assert "CONFIG_MT76x02_LIB=m" in gated[1]
+
+
+class TestSbomKernelConfig:
+    """``--kernel-config`` must work with ``--sbom``, not just with a build tree.
+
+    An SBOM lists packages; a kernel CVE is answered by the configuration. The
+    flag was offered alongside ``--sbom`` and silently ignored, so gating was
+    quietly off on the one path where the user had explicitly asked for it.
+    """
+
+    def _sbom(self, tmp_path: Path) -> Path:
+        doc = {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.5",
+            "components": [{"type": "library", "name": "linux", "version": "6.8.0"}],
+        }
+        p = tmp_path / "sbom.json"
+        p.write_text(json.dumps(doc))
+        return p
+
+    def test_the_config_is_read_and_marked_complete(self, tmp_path: Path) -> None:
+        cfg = tmp_path / ".config"
+        cfg.write_text("#\n# Automatically generated file; DO NOT EDIT.\n#\nCONFIG_KSMBD=y\n")
+        product = load_sbom(self._sbom(tmp_path), kernel_config=cfg)
+        assert product.kernel_config["CONFIG_KSMBD"] == "y"
+        assert product.kernel_config_complete is True
+
+    def test_a_fragment_is_read_but_not_marked_complete(self, tmp_path: Path) -> None:
+        cfg = tmp_path / "frag.cfg"
+        cfg.write_text("CONFIG_KSMBD=y\n")
+        product = load_sbom(self._sbom(tmp_path), kernel_config=cfg)
+        assert product.kernel_config_complete is False
+
+    def test_a_missing_config_is_an_error_rather_than_silence(self, tmp_path: Path) -> None:
+        with pytest.raises(IngestError):
+            load_sbom(self._sbom(tmp_path), kernel_config="/nonexistent/.config")
+
+    def test_without_the_flag_nothing_changes(self, tmp_path: Path) -> None:
+        product = load_sbom(self._sbom(tmp_path))
+        assert product.kernel_config == {}
+        assert product.kernel_config_complete is False

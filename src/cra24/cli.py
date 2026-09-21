@@ -111,7 +111,7 @@ def _load_product(args: argparse.Namespace) -> Product:
     elif getattr(args, "buildroot_dir", None):
         product = load_buildroot(args.buildroot_dir, kernel_config=args.kernel_config)
     elif args.sbom:
-        product = load_sbom(args.sbom)
+        product = load_sbom(args.sbom, kernel_config=args.kernel_config)
     else:
         raise ConfigError(
             "no inventory source given",

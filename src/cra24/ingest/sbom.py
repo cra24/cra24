@@ -23,7 +23,7 @@ from typing import Any
 from ..errors import IngestError
 from ..logging import get
 from ..model import BuildStatus, Component, Product
-from .base import finish
+from .base import finish, is_generated_config, read_kernel_config
 
 log = get("ingest.sbom")
 
@@ -132,8 +132,21 @@ def _load_spdx(doc: dict[str, Any]) -> tuple[list[Component], dict[str, Any]]:
     return comps, {"spdxVersion": doc.get("spdxVersion", "")}
 
 
-def load_sbom(path: str | Path, product_name: str = "", product_version: str = "") -> Product:
-    """Build a :class:`Product` from a CycloneDX or SPDX JSON document."""
+def load_sbom(
+    path: str | Path,
+    product_name: str = "",
+    product_version: str = "",
+    kernel_config: str | Path | None = None,
+) -> Product:
+    """Build a :class:`Product` from a CycloneDX or SPDX JSON document.
+
+    ``kernel_config`` is accepted here for the same reason it is accepted by the
+    Yocto and Buildroot ingesters: an SBOM lists packages, and a kernel CVE is
+    answered by the configuration, not the package list. The CLI has always
+    offered ``--kernel-config`` alongside ``--sbom`` and silently ignored it,
+    which left gating quietly disabled on the one path where the user had
+    explicitly asked for it.
+    """
     p = Path(path)
     if not p.is_file():
         raise IngestError(f"{p} does not exist")
@@ -171,11 +184,26 @@ def load_sbom(path: str | Path, product_name: str = "", product_version: str = "
         raise IngestError(f"{p} describes no components")
 
     log.info("read %d components from %s", len(components), fmt)
-    return finish(
-        Product(
-            name=name or p.stem,
-            version=version,
-            components=components,
-            build_id=f"{fmt}:{p.name}",
-        )
+    product = Product(
+        name=name or p.stem,
+        version=version,
+        components=components,
+        build_id=f"{fmt}:{p.name}",
     )
+
+    if kernel_config:
+        cfg = Path(kernel_config)
+        if not cfg.is_file():
+            raise IngestError(f"kernel config {kernel_config} not found")
+        product.kernel_config = read_kernel_config(cfg)
+        product.kernel_config_complete = is_generated_config(cfg)
+        log.info(
+            "read %d kernel config symbols from %s%s",
+            len(product.kernel_config),
+            cfg,
+            ""
+            if product.kernel_config_complete
+            else " (not kconfig-generated; gating limited)",
+        )
+
+    return finish(product)

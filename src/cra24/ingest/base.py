@@ -11,8 +11,17 @@ from pathlib import Path
 from ..model import Product
 
 #: ``CONFIG_FOO=y`` / ``CONFIG_FOO=m`` / ``# CONFIG_FOO is not set``
-_CONFIG_SET = re.compile(r"^(CONFIG_[A-Z0-9_]+)=(.*)$")
-_CONFIG_UNSET = re.compile(r"^# (CONFIG_[A-Z0-9_]+) is not set$")
+#:
+#: Lower case belongs in the character class. Kconfig symbols are conventionally
+#: upper case but not exclusively: a stock Ubuntu 6.8 config carries
+#: ``CONFIG_SCSI_DC395x``, ``CONFIG_MT76x02_LIB``, ``CONFIG_ARCNET_COM90xx`` and
+#: ``CONFIG_FONT_6x11`` among others — 36 enabled symbols in one real config.
+#: An upper-case-only pattern drops them silently, and a dropped ``=y`` is worse
+#: than a parse error: the symbol becomes *absent*, absence in a complete config
+#: reads as "not enabled", and the gate then reports a compiled-in driver as not
+#: affected. Found by running this against a real kernel rather than a fixture.
+_CONFIG_SET = re.compile(r"^(CONFIG_[A-Za-z0-9_]+)=(.*)$")
+_CONFIG_UNSET = re.compile(r"^# (CONFIG_[A-Za-z0-9_]+) is not set$")
 
 #: The banner kconfig writes at the top of every ``.config`` it generates.
 #: A defconfig, a ``*.cfg`` fragment or a hand-written snippet does not carry it.

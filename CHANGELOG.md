@@ -15,6 +15,37 @@ rely on:
 
 ---
 
+## [1.0.1] — 2026-09-21
+
+Found by running `cra24 scan` against a real kernel and a real package list
+rather than the fixtures. Both fixes affect verdicts.
+
+### Triage
+
+- **A kernel symbol whose name contains lower case was dropped entirely.**
+  Kconfig symbols are conventionally upper case but not exclusively, and the
+  pattern only allowed `[A-Z0-9_]`. A stock Ubuntu 6.8 config carries 36 enabled
+  symbols it could not see — `CONFIG_SCSI_DC395x`, `CONFIG_MT76x02_LIB`,
+  `CONFIG_ARCNET_COM90xx`, `CONFIG_MTD_NETtel` and others.
+
+  A dropped `=y` or `=m` is worse than a parse error. The symbol becomes
+  *absent*; absence in a complete config reads as "not enabled"; and the gate
+  then reports a driver that is compiled in and shipping as `not_affected`,
+  with an evidence line reading "not set in the shipped kernel config" about a
+  symbol that is set. The one direction the engine must never fail in.
+
+  **Re-run any dossier gated on a symbol containing a lower-case letter.**
+
+### Fixed
+
+- **`--kernel-config` now works with `--sbom`.** The flag sits in the shared
+  inventory group, so it was offered alongside `--sbom`, accepted, and silently
+  ignored: `load_sbom` never read it. Anyone gating an SBOM-described product
+  got no gating at all and no warning. An SBOM lists packages, and a kernel CVE
+  is answered by the configuration, so the flag belongs on that path too.
+
+---
+
 ## [1.0.0] — 2026-09-19
 
 First public release.
@@ -276,6 +307,7 @@ The release that turns a sketch into something you could file with.
 Initial sketch: Yocto and SBOM ingest, a flat SRP field list, CSAF and OpenVEX
 emit, a hash-chained evidence ledger.
 
+[1.0.1]: https://github.com/cra24/cra24/releases/tag/v1.0.1
 [1.0.0]: https://github.com/cra24/cra24/releases/tag/v1.0.0
 [0.4.0]: https://github.com/cra24/cra24/releases/tag/v0.4.0
 [0.3.0]: https://github.com/cra24/cra24/releases/tag/v0.3.0
