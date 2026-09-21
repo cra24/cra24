@@ -236,3 +236,111 @@ class TestSbomKernelConfig:
         product = load_sbom(self._sbom(tmp_path))
         assert product.kernel_config == {}
         assert product.kernel_config_complete is False
+
+
+class TestSpdx3:
+    """SPDX 3.0, which is what current Yocto emits.
+
+    3.0 is a JSON-LD graph, not a package list. The 2.x reader looks for a
+    top-level ``packages`` array, finds none, and rejects the file as "neither
+    CycloneDX nor SPDX" — a confusing thing to be told about a document that is
+    unmistakably SPDX, and produced by the build system this tool exists for.
+
+    The graph also carries VEX assessments, which are triage decisions the build
+    already made. Reading them is the whole point of the SBOM path.
+    """
+
+    def _doc(self) -> dict:
+        return {
+            "@context": "https://spdx.org/rdf/3.0.1/spdx-context.jsonld",
+            "@graph": [
+                {
+                    "type": "software_Package",
+                    "spdxId": "urn:pkg:busybox",
+                    "name": "busybox",
+                    "software_packageVersion": "1.37.0",
+                    "software_packageUrl": "pkg:yocto/core/busybox@1.37.0",
+                    "software_primaryPurpose": "install",
+                    "externalIdentifier": [
+                        {"externalIdentifierType": "cpe23", "identifier": "cpe:2.3:a:busybox"}
+                    ],
+                },
+                {
+                    # A recipe, not an installed package. Must not be inventoried.
+                    "type": "software_Package",
+                    "spdxId": "urn:recipe:busybox",
+                    "name": "busybox",
+                    "software_primaryPurpose": "specification",
+                },
+                {
+                    # A build-time tool. Must not be inventoried.
+                    "type": "software_Package",
+                    "spdxId": "urn:pkg:cmake-native",
+                    "name": "cmake-native",
+                    "software_packageVersion": "3.30",
+                    "software_primaryPurpose": "specification",
+                },
+                {
+                    "type": "security_Vulnerability",
+                    "spdxId": "urn:vuln:CVE-2022-28391",
+                    "externalIdentifier": [
+                        {"externalIdentifierType": "cve", "identifier": "CVE-2022-28391"}
+                    ],
+                },
+                {
+                    "type": "security_VexFixedVulnAssessmentRelationship",
+                    "spdxId": "urn:vex:1",
+                    "from": "urn:vuln:CVE-2022-28391",
+                    "to": ["urn:pkg:busybox"],
+                    "security_statusNotes": "fix-file-included",
+                },
+            ],
+        }
+
+    def test_the_document_is_recognised_at_all(self, tmp_path: Path) -> None:
+        p = tmp_path / "spdx3.json"
+        p.write_text(json.dumps(self._doc()))
+        product = load_sbom(p)
+        assert product.components, "an SPDX 3.0 graph was rejected"
+
+    def test_only_installed_packages_are_inventoried(self, tmp_path: Path) -> None:
+        """Recipes and -native tools are build inputs, not what the device runs."""
+        p = tmp_path / "spdx3.json"
+        p.write_text(json.dumps(self._doc()))
+        names = {c.name for c in load_sbom(p).components}
+        assert names == {"busybox"}
+        assert "cmake-native" not in names
+
+    def test_package_detail_survives(self, tmp_path: Path) -> None:
+        p = tmp_path / "spdx3.json"
+        p.write_text(json.dumps(self._doc()))
+        comp = load_sbom(p).components[0]
+        assert comp.version == "1.37.0"
+        assert comp.purl == "pkg:yocto/core/busybox@1.37.0"
+        assert comp.cpes == ["cpe:2.3:a:busybox"]
+
+    def test_a_vex_decision_the_build_already_made_is_preserved(self, tmp_path: Path) -> None:
+        p = tmp_path / "spdx3.json"
+        p.write_text(json.dumps(self._doc()))
+        comp = load_sbom(p).components[0]
+        record = comp.cves["CVE-2022-28391"]
+        assert record.status is BuildStatus.PATCHED
+        assert "fix-file-included" in record.detail
+
+    def test_an_assessment_about_something_that_does_not_ship_is_dropped(
+        self, tmp_path: Path
+    ) -> None:
+        """Recording it would claim the device contains a build-time tool."""
+        doc = self._doc()
+        doc["@graph"].append(
+            {
+                "type": "security_VexFixedVulnAssessmentRelationship",
+                "spdxId": "urn:vex:2",
+                "from": "urn:vuln:CVE-2022-28391",
+                "to": ["urn:pkg:cmake-native"],
+            }
+        )
+        p = tmp_path / "spdx3.json"
+        p.write_text(json.dumps(doc))
+        names = {c.name for c in load_sbom(p).components}
+        assert "cmake-native" not in names

@@ -15,6 +15,37 @@ rely on:
 
 ---
 
+## [1.1.0] — 2026-09-21
+
+### Added
+
+- **SPDX 3.0 is read.** It is what current Yocto emits, and it is a JSON-LD
+  graph rather than a package list, so the 2.x reader looked for a top-level
+  `packages` array, found none, and rejected the file as "neither CycloneDX nor
+  SPDX" — a confusing thing to be told about a document that is unmistakably
+  SPDX, produced by the build system this tool exists for. `sbom.py` had
+  claimed 3.x support since 0.1.0 without having it.
+
+  Tested against the published `core-image-full-cmdline` SPDX from Yocto
+  6.0.3/genericarm64: 455 components, matching all 452 packages in that image's
+  own manifest.
+
+- **VEX assessments in an SPDX 3.0 graph are preserved.** The graph carries
+  `security_Vulnerability` nodes and VEX assessment relationships — triage
+  decisions the build already made, with justifications. In the Yocto 6.0.3
+  image that is 53 statements: 31 patched, 22 not affected, each with the
+  reason the recipe author recorded, such as `vulnerableCodeNotPresent:
+  not-applicable-platform: Ubuntu specific motd update code`.
+
+  Only entries whose `software_primaryPurpose` is `install` are inventoried.
+  A Yocto SPDX also describes the recipes, the source archives and every
+  `-native` and `-cross` tool used to build them — 100 of them in that image.
+  Those are build inputs, and treating them as installed is the most common way
+  a CRA inventory ends up overstating the device. An assessment about something
+  that does not ship is dropped for the same reason.
+
+---
+
 ## [1.0.1] — 2026-09-21
 
 Found by running `cra24 scan` against a real kernel and a real package list
@@ -307,6 +338,7 @@ The release that turns a sketch into something you could file with.
 Initial sketch: Yocto and SBOM ingest, a flat SRP field list, CSAF and OpenVEX
 emit, a hash-chained evidence ledger.
 
+[1.1.0]: https://github.com/cra24/cra24/releases/tag/v1.1.0
 [1.0.1]: https://github.com/cra24/cra24/releases/tag/v1.0.1
 [1.0.0]: https://github.com/cra24/cra24/releases/tag/v1.0.0
 [0.4.0]: https://github.com/cra24/cra24/releases/tag/v0.4.0

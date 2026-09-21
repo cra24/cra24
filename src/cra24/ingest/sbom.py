@@ -132,6 +132,100 @@ def _load_spdx(doc: dict[str, Any]) -> tuple[list[Component], dict[str, Any]]:
     return comps, {"spdxVersion": doc.get("spdxVersion", "")}
 
 
+#: SPDX 3.0 VEX relationship type -> our BuildStatus.
+_SPDX3_VEX = {
+    "security_VexFixedVulnAssessmentRelationship": BuildStatus.PATCHED,
+    "security_VexNotAffectedVulnAssessmentRelationship": BuildStatus.IGNORED,
+    "security_VexAffectedVulnAssessmentRelationship": BuildStatus.UNPATCHED,
+    "security_VexUnderInvestigationVulnAssessmentRelationship": BuildStatus.UNKNOWN,
+}
+
+#: ``software_primaryPurpose`` of the entries that describe what actually ships.
+#: A Yocto SPDX 3.0 document also carries the recipes that produced them, the
+#: source archives they were built from, and every ``-native`` and ``-cross``
+#: tool used along the way. Those are build inputs. Treating them as installed
+#: is the most common way a CRA inventory ends up overstating the device.
+_SPDX3_INSTALLED = "install"
+
+
+def _spdx3_identifier(entry: dict[str, Any], wanted: str) -> str | None:
+    for ident in entry.get("externalIdentifier", []) or []:
+        if ident.get("externalIdentifierType") == wanted and ident.get("identifier"):
+            return str(ident["identifier"])
+    return None
+
+
+def _spdx3_cpes(entry: dict[str, Any]) -> list[str]:
+    return [
+        str(i["identifier"])
+        for i in entry.get("externalIdentifier", []) or []
+        if str(i.get("externalIdentifierType", "")).startswith("cpe") and i.get("identifier")
+    ]
+
+
+def _load_spdx3(doc: dict[str, Any]) -> tuple[list[Component], dict[str, Any]]:
+    """Read SPDX 3.0, which is a JSON-LD graph rather than a package list.
+
+    This is what current Yocto emits. The 2.x reader looks for a top-level
+    ``packages`` array, finds none, and the document is rejected as "neither
+    CycloneDX nor SPDX" — which is a confusing thing to be told about a file
+    that is unmistakably SPDX.
+
+    The graph carries more than the inventory: ``security_Vulnerability`` nodes
+    and VEX assessment relationships, which are triage decisions the build
+    already made. Reading them is the whole point of the SBOM path.
+    """
+    graph = [e for e in doc.get("@graph", []) or [] if isinstance(e, dict)]
+    by_id = {e["spdxId"]: e for e in graph if e.get("spdxId")}
+
+    comps: dict[str, Component] = {}
+    for entry in graph:
+        if entry.get("type") != "software_Package":
+            continue
+        if entry.get("software_primaryPurpose") != _SPDX3_INSTALLED:
+            continue
+        name = (entry.get("name") or "").strip()
+        if not name:
+            continue
+        comps[name] = Component(
+            name=name,
+            version=(entry.get("software_packageVersion") or "").strip(),
+            purl=entry.get("software_packageUrl") or _spdx3_identifier(entry, "packageUrl"),
+            cpes=_spdx3_cpes(entry),
+            origin="spdx3",
+        )
+
+    # A VEX relationship points from a vulnerability to the thing it assesses.
+    for entry in graph:
+        status = _SPDX3_VEX.get(str(entry.get("type", "")))
+        if status is None:
+            continue
+        vuln = by_id.get(str(entry.get("from", "")))
+        cve = _spdx3_identifier(vuln, "cve") if vuln else None
+        if not cve:
+            continue
+        detail = ": ".join(
+            str(v)
+            for v in (
+                entry.get("security_justificationType"),
+                entry.get("security_statusNotes"),
+                entry.get("security_impactStatement"),
+            )
+            if v
+        )
+        for target in entry.get("to", []) or []:
+            node = by_id.get(str(target))
+            comp = comps.get((node or {}).get("name", ""))
+            if comp is None:
+                # The assessment is about a recipe or a build-time tool that
+                # does not ship. Recording it would claim the device contains
+                # something it does not.
+                continue
+            comp.add_cve(cve, status, detail=detail, source="spdx3:vex")
+
+    return list(comps.values()), {"spdxVersion": "SPDX-3.0"}
+
+
 def load_sbom(
     path: str | Path,
     product_name: str = "",
@@ -163,7 +257,20 @@ def load_sbom(
     name = product_name
     version = product_version
 
-    if doc.get("bomFormat") == "CycloneDX" or ("components" in doc and "packages" not in doc):
+    if "@graph" in doc:
+        components, meta = _load_spdx3(doc)
+        rootfs = next(
+            (
+                e
+                for e in doc["@graph"]
+                if isinstance(e, dict) and e.get("software_primaryPurpose") == "archive"
+            ),
+            {},
+        )
+        name = name or (rootfs.get("name") or "")
+        version = version or (rootfs.get("software_packageVersion") or "")
+        fmt = "SPDX 3.0"
+    elif doc.get("bomFormat") == "CycloneDX" or ("components" in doc and "packages" not in doc):
         components, meta = _load_cyclonedx(doc)
         target = (meta.get("component") or {}) if isinstance(meta, dict) else {}
         name = name or (target.get("name") or "")

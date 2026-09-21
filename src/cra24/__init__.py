@@ -13,7 +13,7 @@ Dual licensed: AGPL-3.0-only, or a commercial licence. See LICENSING.md.
 
 from __future__ import annotations
 
-__version__ = "1.0.1"
+__version__ = "1.1.0"
 __all__ = ["__version__"]
 
 #: Shown on generated documents so a reader knows what produced them.
